@@ -11,15 +11,17 @@ module.exports = async function handler(req, res) {
 
   // ── Config ────────────────────────────────────────────
   const FILLOUT_API_KEY = process.env.FILLOUT_API_KEY;
-  const FILLOUT_FORM_ID = process.env.FILLOUT_FORM_ID || 'imw8YVtJieus';
   const OPENAI_API_KEY  = process.env.OPENAI_API_KEY;
 
-  // ── Validate submission_id ────────────────────────────
-  const { submission_id } = req.query;
+  // ── Validate params ───────────────────────────────────
+  const { submission_id, form_id } = req.query;
 
   if (!submission_id) {
     return res.status(400).json({ error: 'submission_id is required' });
   }
+
+  // form_id: з URL параметра або fallback на env змінну
+  const FILLOUT_FORM_ID = form_id || process.env.FILLOUT_FORM_ID;
 
   try {
     // ── 1. Fetch submission from Fillout API ─────────────
