@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SKVOT — Твій персональний аналіз</title>
+  <title>SKVOT — Tvoje osobní analýza</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -334,16 +334,16 @@
     <div class="skvot-logo-loading">SKVOT</div>
     <div class="spinner-ring"></div>
     <p class="loading-label">
-      Аналізуємо твої відповіді<span>.</span><span>.</span><span>.</span>
+      Analyzujeme tvoje odpovědi<span>.</span><span>.</span><span>.</span>
     </p>
   </div>
 
   <!-- ══ STATE: ERROR ════════════════════════════════════ -->
   <div id="state-error">
     <div class="error-code">404</div>
-    <h2 class="error-title">Щось пішло не так</h2>
-    <p class="error-msg" id="error-message">Не вдалося завантажити персональний аналіз.</p>
-    <button class="retry-btn" onclick="window.location.reload()">Спробувати знову</button>
+    <h2 class="error-title">Něco se pokazilo</h2>
+    <p class="error-msg" id="error-message">Nepodařilo se načíst tvou osobní analýzu.</p>
+    <button class="retry-btn" onclick="window.location.reload()">Zkusit znovu</button>
   </div>
 
   <!-- ══ STATE: RESPONSE ════════════════════════════════ -->
@@ -360,7 +360,7 @@
       -->
       <div class="skvot-logo">🚀 SKVOT</div>
 
-      <div class="header-tag">Персональний аналіз готовий</div>
+      <div class="header-tag">Tvoje osobní analýza je připravena</div>
 
       <h1 class="page-title">
         Це — <span class="accent">твій</span> результат
@@ -372,8 +372,8 @@
     <div class="sections-grid" id="sections-container"></div>
 
     <footer class="page-footer">
-      <span class="footer-brand">SKVOT — Школа креативних індустрій</span>
-      <span class="footer-note">Аналіз згенеровано на основі твоїх відповідей</span>
+      <span class="footer-brand">SKVOT — Škola kreativních průmyslů</span>
+      <span class="footer-note">Analýza vygenerována na základě tvých odpovědí</span>
     </footer>
 
   </div>
@@ -390,7 +390,7 @@
       const submissionId = params.get('submission_id');
 
       if (!submissionId) {
-        showError('Ідентифікатор сесії відсутній у посиланні.');
+        showError('Odkaz neobsahuje identifikátor přihlášky.');
         return;
       }
 
@@ -408,7 +408,7 @@
         }
 
         if (!body.sections || !Array.isArray(body.sections) || body.sections.length === 0) {
-          throw new Error('Неочікуваний формат відповіді від сервера.');
+          throw new Error('Neočekávaný formát odpovědi ze serveru.');
         }
 
         renderResponse(body);
