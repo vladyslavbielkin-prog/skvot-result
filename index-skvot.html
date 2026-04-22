@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SKVOT — Твій персональний аналіз</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ─── SKVOT TOKENS ──────────────────────────────────── */
+    :root {
+      --bg:         #181818;
+      --surface:    #202020;
+      --surface-2:  #252525;
+      --border:     rgba(255,255,255,0.08);
+      --border-hi:  rgba(29,233,213,0.3);
+      --text:       #FFFFFF;
+      --text-muted: rgba(255,255,255,0.45);
+      --cyan:       #1DE9D5;   /* CTA button colour */
+      --yellow:     #C8FF00;   /* logo outline colour */
+      --cyan-dim:   rgba(29,233,213,0.08);
+      --yellow-dim: rgba(200,255,0,0.06);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background-color: var(--bg);
+      /* subtle noise/grid texture feel */
+      background-image:
+        radial-gradient(ellipse 60% 35% at 50% 0%, rgba(29,233,213,0.06) 0%, transparent 65%),
+        repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 39px,
+          rgba(255,255,255,0.02) 39px,
+          rgba(255,255,255,0.02) 40px
+        );
+      color: var(--text);
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-weight: 300;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 1.5rem;
+    }
+
+    /* ─── STATE: LOADING ─────────────────────────────────── */
+    #state-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2rem;
+      text-align: center;
+    }
+
+    .skvot-logo-loading {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 3.5rem;
+      letter-spacing: 0.1em;
+      color: transparent;
+      -webkit-text-stroke: 1.5px var(--yellow);
+      line-height: 1;
+      animation: logoPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes logoPulse {
+      0%, 100% { -webkit-text-stroke-color: var(--yellow); opacity: 1; }
+      50%       { -webkit-text-stroke-color: var(--cyan);  opacity: 0.7; }
+    }
+
+    .spinner-ring {
+      width: 42px;
+      height: 42px;
+      border: 2px solid rgba(29,233,213,0.15);
+      border-top-color: var(--cyan);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .loading-label span {
+      display: inline-block;
+      animation: blink 1.2s step-end infinite;
+    }
+    .loading-label span:nth-child(2) { animation-delay: 0.4s; }
+    .loading-label span:nth-child(3) { animation-delay: 0.8s; }
+
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* ─── STATE: ERROR ───────────────────────────────────── */
+    #state-error {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.25rem;
+      text-align: center;
+      max-width: 400px;
+    }
+
+    .error-code {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 5rem;
+      color: transparent;
+      -webkit-text-stroke: 1.5px rgba(255,255,255,0.2);
+      line-height: 1;
+    }
+
+    .error-title {
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .error-msg {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .retry-btn {
+      margin-top: 0.5rem;
+      padding: 0.7rem 2rem;
+      background: var(--cyan);
+      color: #000;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+
+    .retry-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+
+    /* ─── STATE: RESPONSE ────────────────────────────────── */
+    #state-response {
+      display: none;
+      width: 100%;
+      max-width: 740px;
+      animation: fadeUp 0.55s ease forwards;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Header */
+    .page-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      margin-bottom: 3rem;
+      gap: 1.5rem;
+    }
+
+    /* SKVOT Logo — outlined style matching Fillout form */
+    .skvot-logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 3.2rem;
+      letter-spacing: 0.12em;
+      color: transparent;
+      -webkit-text-stroke: 1.5px var(--yellow);
+      line-height: 1;
+      /*
+        Якщо є SVG/PNG логотип — замість цього тегу:
+        <img src="https://your-cdn.com/skvot-logo.svg" alt="SKVOT" style="height:52px;">
+      */
+    }
+
+    .header-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      border: 1px solid rgba(29,233,213,0.3);
+      padding: 0.3rem 0.9rem;
+    }
+
+    .header-tag::before {
+      content: '●';
+      font-size: 0.5rem;
+      animation: blink 1.5s step-end infinite;
+    }
+
+    .page-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2.4rem, 6vw, 3.8rem);
+      letter-spacing: 0.04em;
+      line-height: 1.05;
+      color: var(--text);
+    }
+
+    .page-title .accent {
+      color: var(--cyan);
+    }
+
+    .header-rule {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(to right, transparent, var(--yellow) 30%, var(--cyan) 70%, transparent);
+      opacity: 0.25;
+    }
+
+    /* Sections */
+    .sections-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .section-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 2px solid var(--yellow);
+      padding: 1.75rem 2rem;
+      position: relative;
+      opacity: 0;
+      transform: translateX(-8px);
+      animation: slideIn 0.4s ease forwards;
+      transition: background 0.25s, border-left-color 0.25s;
+    }
+
+    .section-card:hover {
+      background: var(--surface-2);
+      border-left-color: var(--cyan);
+    }
+
+    @keyframes slideIn {
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .section-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .section-num {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.6rem;
+      color: var(--cyan);
+      opacity: 0.7;
+      letter-spacing: 0.1em;
+    }
+
+    .section-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .section-title {
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text);
+      margin-bottom: 0.75rem;
+    }
+
+    .section-content {
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 300;
+      color: rgba(255,255,255,0.7);
+      line-height: 1.85;
+      white-space: pre-wrap;
+    }
+
+    /* Footer */
+    .page-footer {
+      margin-top: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .footer-brand {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .footer-note {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.62rem;
+      color: rgba(255,255,255,0.2);
+      letter-spacing: 0.06em;
+    }
+
+    /* ─── RESPONSIVE ─────────────────────────────────────── */
+    @media (max-width: 560px) {
+      .section-card   { padding: 1.25rem; }
+      .skvot-logo     { font-size: 2.4rem; }
+      .page-footer    { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══ STATE: LOADING ══════════════════════════════════ -->
+  <div id="state-loading">
+    <div class="skvot-logo-loading">SKVOT</div>
+    <div class="spinner-ring"></div>
+    <p class="loading-label">
+      Аналізуємо твої відповіді<span>.</span><span>.</span><span>.</span>
+    </p>
+  </div>
+
+  <!-- ══ STATE: ERROR ════════════════════════════════════ -->
+  <div id="state-error">
+    <div class="error-code">404</div>
+    <h2 class="error-title">Щось пішло не так</h2>
+    <p class="error-msg" id="error-message">Не вдалося завантажити персональний аналіз.</p>
+    <button class="retry-btn" onclick="window.location.reload()">Спробувати знову</button>
+  </div>
+
+  <!-- ══ STATE: RESPONSE ════════════════════════════════ -->
+  <div id="state-response">
+
+    <header class="page-header">
+      <!--
+        SKVOT Logo:
+        Варіант 1 — текстовий (як у Fillout):
+          Залиш як є.
+        Варіант 2 — PNG/SVG:
+          Замість <div class="skvot-logo"> встав:
+          <img src="https://your-cdn/skvot-logo.svg" alt="SKVOT" style="height:52px;">
+      -->
+      <div class="skvot-logo">🚀 SKVOT</div>
+
+      <div class="header-tag">Персональний аналіз готовий</div>
+
+      <h1 class="page-title">
+        Це — <span class="accent">твій</span> результат
+      </h1>
+
+      <div class="header-rule"></div>
+    </header>
+
+    <div class="sections-grid" id="sections-container"></div>
+
+    <footer class="page-footer">
+      <span class="footer-brand">SKVOT — Школа креативних індустрій</span>
+      <span class="footer-note">Аналіз згенеровано на основі твоїх відповідей</span>
+    </footer>
+
+  </div>
+
+  <script>
+    // ════════════════════════════════════════════════════
+    //  КОНФІГ — Vercel API function
+    // ════════════════════════════════════════════════════
+    const N8N_WEBHOOK_URL = '/api/analyze';
+    // ════════════════════════════════════════════════════
+
+    async function init() {
+      const params       = new URLSearchParams(window.location.search);
+      const submissionId = params.get('submission_id');
+
+      if (!submissionId) {
+        showError('Ідентифікатор сесії відсутній у посиланні.');
+        return;
+      }
+
+      try {
+        const res = await fetch(
+          `${N8N_WEBHOOK_URL}?submission_id=${encodeURIComponent(submissionId)}`,
+          { method: 'GET', headers: { Accept: 'application/json' } }
+        );
+
+        let body;
+        try { body = await res.json(); } catch { body = {}; }
+
+        if (!res.ok) {
+          throw new Error(body.error || `Помилка сервера: HTTP ${res.status}`);
+        }
+
+        if (!body.sections || !Array.isArray(body.sections) || body.sections.length === 0) {
+          throw new Error('Неочікуваний формат відповіді від сервера.');
+        }
+
+        renderResponse(body);
+
+      } catch (err) {
+        showError(err.message || 'Невідома помилка.');
+      }
+    }
+
+    function renderResponse(data) {
+      const container = document.getElementById('sections-container');
+
+      data.sections.forEach((section, i) => {
+        const card = document.createElement('div');
+        card.className = 'section-card';
+        card.style.animationDelay = `${i * 100}ms`;
+        card.innerHTML = `
+          <div class="section-meta">
+            <span class="section-num">0${i + 1}</span>
+            <div class="section-line"></div>
+          </div>
+          <h2 class="section-title">${esc(section.title)}</h2>
+          <p class="section-content">${esc(section.content)}</p>
+        `;
+        container.appendChild(card);
+      });
+
+      setState('response');
+    }
+
+    function showError(msg) {
+      document.getElementById('error-message').textContent = msg;
+      setState('error');
+    }
+
+    function setState(state) {
+      document.getElementById('state-loading').style.display  = 'none';
+      document.getElementById('state-error').style.display    = state === 'error'    ? 'flex'  : 'none';
+      document.getElementById('state-response').style.display = state === 'response' ? 'block' : 'none';
+    }
+
+    function esc(str) {
+      return String(str ?? '')
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    init();
+  </script>
+
+</body>
+</html>
